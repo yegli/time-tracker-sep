@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Time Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js"></script>
+</head>
+<body>
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <header class="app-header">
+    <div class="header-brand">
+      <span class="brand-icon">◷</span>
+      <span class="brand-name">Time Tracker</span>
+    </div>
+
+    <div class="header-controls">
+      <!-- Sprint A selector -->
+      <div class="control-group">
+        <label for="sprint-select" class="control-label">Sprint</label>
+        <select id="sprint-select" class="select">
+          <option value="">— select sprint —</option>
+        </select>
+      </div>
+
+      <!-- Compare toggle -->
+      <div class="control-group compare-toggle-group">
+        <label class="toggle-label" for="compare-toggle">
+          <input type="checkbox" id="compare-toggle" />
+          <span class="toggle-track"></span>
+          <span class="toggle-text">Compare</span>
+        </label>
+      </div>
+
+      <!-- Sprint B selector (hidden until compare is on) -->
+      <div class="control-group" id="sprint-b-group" hidden>
+        <label for="sprint-b-select" class="control-label">vs</label>
+        <select id="sprint-b-select" class="select">
+          <option value="">— select sprint —</option>
+        </select>
+      </div>
+
+      <!-- Upload sprint CSV -->
+      <button id="upload-btn" class="btn-upload" title="Upload sprint CSV">⬆ Upload</button>
+      <input type="file" id="upload-input" accept=".csv" hidden>
+
+      <!-- Theme toggle -->
+      <button id="theme-toggle" class="icon-btn" title="Toggle dark mode" aria-label="Toggle dark mode">
+        <span class="theme-icon-light">☀</span>
+        <span class="theme-icon-dark">☾</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ── Layout wrapper ─────────────────────────────────────────────────── -->
+  <div class="app-layout" id="app-layout" hidden>
+
+    <!-- ── Sidebar nav ──────────────────────────────────────────────────── -->
+    <nav class="app-nav" id="app-nav">
+      <button class="nav-tab active" data-view="overview">Overview</button>
+      <button class="nav-tab" data-view="member">By Member</button>
+      <button class="nav-tab" data-view="issue">By Issue</button>
+      <button class="nav-tab" data-view="timeline">Timeline</button>
+      <button class="nav-tab" data-view="epic">By Epic</button>
+      <button class="nav-tab" data-view="table">Table</button>
+      <button class="nav-tab compare-tab" data-view="compare" hidden>Compare</button>
+    </nav>
+
+    <!-- ── Main content ─────────────────────────────────────────────────── -->
+    <main class="app-main">
+
+      <section id="view-overview" class="view active">
+        <h2 class="view-title">Overview</h2>
+        <div id="overview-content"></div>
+      </section>
+
+      <section id="view-member" class="view">
+        <h2 class="view-title">By Member</h2>
+        <div id="member-content"></div>
+      </section>
+
+      <section id="view-issue" class="view">
+        <h2 class="view-title">By Issue</h2>
+        <div id="issue-content"></div>
+      </section>
+
+      <section id="view-timeline" class="view">
+        <h2 class="view-title">Timeline</h2>
+        <div id="timeline-content"></div>
+      </section>
+
+      <section id="view-epic" class="view">
+        <h2 class="view-title">By Epic</h2>
+        <div id="epic-content"></div>
+      </section>
+
+      <section id="view-table" class="view">
+        <h2 class="view-title">Data Table</h2>
+        <div id="table-content"></div>
+      </section>
+
+      <section id="view-compare" class="view">
+        <h2 class="view-title">Sprint Comparison</h2>
+        <div id="compare-content"></div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ── Empty state (shown when no sprints are available) ─────────────── -->
+  <div class="empty-state" id="empty-state">
+    <div class="empty-state-icon">📂</div>
+    <h2 class="empty-state-title">No sprint data yet</h2>
+    <p class="empty-state-body">
+      Drop a CSV export from Jira into the <code>./data/</code> folder,<br />
+      then reload this page.
+    </p>
+    <p class="empty-state-hint">
+      Expected filename pattern:<br />
+      <code>worklogs_from_DD-MM-YYYY_to_DD-MM-YYYY.csv</code>
+    </p>
+  </div>
+
+  <!-- ── Error banner (hidden by default) ──────────────────────────────── -->
+  <div class="error-banner" id="error-banner" hidden>
+    <span id="error-message"></span>
+    <button class="error-dismiss" id="error-dismiss" aria-label="Dismiss">✕</button>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+
+# Data files — drop your own CSVs into data/
+data/*.csv
+
+# Docker
+.dockerignore
+
+# Development / planning
+PLAN.md
+tasks/
+
+# OS
+.DS_Store
