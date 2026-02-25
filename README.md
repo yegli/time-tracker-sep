@@ -10,6 +10,7 @@ A zero-dependency, locally hosted web dashboard for visualizing Jira worklog exp
 - **Issue / story breakdown** — see where time was invested, grouped by status
 - **Timeline view** — daily hours stacked by team member
 - **Epic categorization** — group by Epic when the data is available
+- **Capacity view** — per-member budget vs. actual with over/under indicators (8 h/person/week)
 - **Raw data table** — searchable and filterable log of all entries
 - **No install required** — open `index.html` in any browser, load your CSV, done
 
@@ -85,6 +86,25 @@ When the dashboard detects this file (or when you load it via the optional secon
 | **Timeline** | Daily stacked area chart showing when work happened |
 | **By Epic** | Hours per epic + epic × member breakdown *(requires Epic data)* |
 | **Data Table** | Filterable, sortable raw log table |
+| **Capacity** | Per-member budget vs. actual hours with remaining/over indicators |
+
+### Capacity view
+
+The Capacity tab shows whether each team member is on track against an **8 h/week** budget. The budget is calculated automatically from the sprint's date range (first worklog date → last worklog date, inclusive):
+
+```
+budget_per_person = 8 h × (sprint_days / 7)
+```
+
+Each person gets a progress bar and a badge:
+
+| Badge | Meaning |
+|---|---|
+| **X h left** (green) | Worked fewer hours than the budget |
+| **+X h over** (red) | Worked more hours than the budget |
+| **exact** (blue) | Worked exactly the budgeted hours |
+
+The summary stat cards at the top show the overall team balance across all members.
 
 ---
 
@@ -105,6 +125,20 @@ When the dashboard detects this file (or when you load it via the optional secon
 | `Components` | string | Jira components *(often empty)* |
 | `Fix version` | string | Jira fix version *(often empty)* |
 | `Team` | string | Team name |
+
+---
+
+## Testing
+
+The capacity logic (budget calculation, over/under detection) is covered by unit tests in `tests/test_capacity.js`. Run them with:
+
+```bash
+make test
+# or directly:
+node tests/test_capacity.js
+```
+
+No additional dependencies are required — the tests use Node.js's built-in `assert` module.
 
 ---
 

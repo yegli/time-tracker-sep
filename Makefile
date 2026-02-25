@@ -1,4 +1,4 @@
-.PHONY: up down build restart logs shell dev clean run-local
+.PHONY: up down build restart logs shell dev clean run-local test
 
 ## Start the dashboard (build if needed)
 up:
@@ -39,3 +39,7 @@ clean:
 ## Run the server locally without Docker (requires .venv)
 run-local:
 	.venv/bin/python server.py
+
+## Run JS unit tests (requires Node.js)
+test:
+	node tests/test_capacity.js
