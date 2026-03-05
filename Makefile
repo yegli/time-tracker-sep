@@ -4,7 +4,7 @@
 up:
 	docker compose up --build -d
 	@echo ""
-	@echo "  Dashboard running at http://localhost:8080"
+	@echo "  Dashboard running at http://localhost:80"
 	@echo "  Drop sprint CSVs into ./data/ — no restart needed."
 	@echo ""
 

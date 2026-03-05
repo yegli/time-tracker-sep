@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install -r requirements.txt -q)",
+      "Bash(pip3 install -r /Users/taaegya1/_code/private/time-tracker/requirements.txt -q)",
+      "Bash(python3 -m venv .venv)",
+      "Bash(.venv/bin/pip install -q -r requirements.txt)",
+      "Bash(docker build -t time-tracker-test .)"
+    ]
+  }
+}

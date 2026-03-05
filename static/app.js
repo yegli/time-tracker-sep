@@ -3,7 +3,9 @@ const state = {
   sprintA: null,
   sprintB: null,
   compareMode: false,
-  epicMap: null,     // loaded once: { "SEP-7": "Epic Name", ... } or null
+  epicMap: null,        // loaded once: { "SEP-7": "Epic Name", ... } or null
+  sprintLengthWeeks: null,  // null = auto-detect from worklogs
+  allWorklogs: null,    // null = not yet loaded; Array = cached combined rows
 };
 
 /* ── Table filter/sort state (persisted across re-renders, reset on sprint change) ── */
@@ -107,6 +109,21 @@ async function loadSprint(filename) {
   return result.data;
 }
 
+/** Fetch every sprint file and return all rows combined (cached in state.allWorklogs). */
+async function _loadAllWorklogs() {
+  try {
+    const res = await fetch("/api/sprints");
+    if (!res.ok) return [];
+    const sprints = await res.json();
+    const arrays  = await Promise.all(
+      sprints.map(({ filename }) => loadSprint(filename).catch(() => []))
+    );
+    return arrays.flat();
+  } catch {
+    return [];
+  }
+}
+
 function validateHeaders(fields) {
   const required = [
     "Last Updated", "Time Spent (s)", "Team Member",
@@ -178,6 +195,35 @@ function aggregateByMember(rows) {
     const m = row["Team Member"];
     if (!m) continue;
     result[m] = (result[m] || 0) + row["Time Spent (s)"];
+  }
+  return result;
+}
+
+/**
+ * Seconds per category per team member.
+ * Returns: { "Yanick Egli": { Admin: 3600, Coding: 7200, Documentation: 1800 }, ... }
+ */
+function aggregateByMemberCategory(rows) {
+  const result = {};
+  for (const row of rows) {
+    const m   = row["Team Member"];
+    const cat = row["Fix version"] || "_unknown";
+    if (!m) continue;
+    if (!result[m]) result[m] = {};
+    result[m][cat] = (result[m][cat] || 0) + row["Time Spent (s)"];
+  }
+  return result;
+}
+
+/**
+ * Total seconds per category across all members.
+ * Returns: { Admin: N, Coding: N, Documentation: N, _unknown: N }
+ */
+function aggregateByCategoryTotal(rows) {
+  const result = {};
+  for (const row of rows) {
+    const cat = row["Fix version"] || "_unknown";
+    result[cat] = (result[cat] || 0) + row["Time Spent (s)"];
   }
   return result;
 }
@@ -337,6 +383,18 @@ const STATUS_COLORS = {
   "In Progress":     "#b8a0e8",
 };
 
+const CATEGORIES      = ["Admin", "Coding", "Documentation"];
+const CATEGORY_COLORS = {
+  Admin:         "#f59e0b",   // amber
+  Coding:        "#3b82f6",   // blue
+  Documentation: "#8b5cf6",   // violet
+  _unknown:      "#94a3b8",   // slate
+};
+
+/* Project-wide budget constants */
+const PROJECT_WEEKS      = 15;
+const PROJECT_BUDGET_HRS = 600;
+
 /** Convert a hex colour to rgba with the given alpha (0–1). */
 function _rgba(hex, alpha) {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -469,6 +527,7 @@ function bindEvents() {
       }
       const { filename, label } = await res.json();
       // Refresh sprint list and select the new sprint
+      state.allWorklogs = null;   // invalidate cross-sprint cache
       await loadSprintList();
       elSprintSelect.value = filename;
       await setSprintA(filename);
@@ -1722,7 +1781,7 @@ function _buildTimelineExportConfig() {
 
 function _buildCapacityExportConfig() {
   if (!state.sprintA) return null;
-  const { budgetSecs, members, weeks } = computeCapacity(state.sprintA);
+  const { budgetSecs, members, weeks } = computeCapacity(state.sprintA, 8, state.sprintLengthWeeks);
   if (members.length === 0) return null;
 
   const budgetHrs = +(budgetSecs / 3600).toFixed(2);
@@ -1893,8 +1952,8 @@ function sprintWeeks(rows) {
  *   members: Array<{name, workedSecs, budgetSecs, remainingSecs, status}>
  * }}
  */
-function computeCapacity(rows, hoursPerWeek = 8) {
-  const weeks      = sprintWeeks(rows);
+function computeCapacity(rows, hoursPerWeek = 8, overrideWeeks = null) {
+  const weeks      = overrideWeeks != null ? overrideWeeks : sprintWeeks(rows);
   const budgetSecs = hoursPerWeek * weeks * 3600;
   const byMember   = aggregateByMember(rows);
 
@@ -1907,6 +1966,275 @@ function computeCapacity(rows, hoursPerWeek = 8) {
   return { weeks, budgetSecs, members };
 }
 
+/* ── Project burn-down helpers ───────────────────────────────────────────────── */
+
+/**
+ * Aggregate all rows into per-week cumulative hours per category over a
+ * PROJECT_WEEKS-wide timeline.  Week 1 starts on the Monday of the week that
+ * contains the earliest worklog entry.
+ */
+function computeProjectBurn(rows) {
+  if (!rows || rows.length === 0) return null;
+
+  const MS_DAY  = 86_400_000;
+  const MS_WEEK = 7 * MS_DAY;
+
+  // Find project start: Monday of the week with the earliest entry
+  const timestamps = rows
+    .map(r => r["Last Updated"])
+    .filter(Boolean)
+    .map(s => new Date(parseDate(s) + "T00:00:00Z").getTime())
+    .filter(t => !isNaN(t));
+  if (timestamps.length === 0) return null;
+
+  const minTs = Math.min(...timestamps);
+  const dow   = new Date(minTs).getUTCDay();           // 0=Sun … 6=Sat
+  const back  = dow === 0 ? -6 : 1 - dow;             // days back to Monday
+  const projStartTs = minTs + back * MS_DAY;
+
+  // Collect per-week per-category seconds (raw, non-cumulative)
+  const allCatsSet = new Set();
+  const weekData   = Array.from({ length: PROJECT_WEEKS }, () => ({}));
+
+  for (const row of rows) {
+    const raw = row["Last Updated"];
+    if (!raw) continue;
+    const ts = new Date(parseDate(raw) + "T00:00:00Z").getTime();
+    if (isNaN(ts)) continue;
+    const weekIdx = Math.floor((ts - projStartTs) / MS_WEEK);
+    if (weekIdx < 0 || weekIdx >= PROJECT_WEEKS) continue;
+    const cat  = row["Fix version"] || "_unknown";
+    const secs = Number(row["Time Spent (s)"]) || 0;
+    allCatsSet.add(cat);
+    weekData[weekIdx][cat] = (weekData[weekIdx][cat] || 0) + secs;
+  }
+
+  // Ordered categories: defined CATEGORIES first, then extras, then _unknown
+  const extraCats = [...allCatsSet].filter(c => !CATEGORIES.includes(c) && c !== "_unknown");
+  const usedCats  = [
+    ...CATEGORIES.filter(c => allCatsSet.has(c)),
+    ...extraCats,
+    ...(allCatsSet.has("_unknown") ? ["_unknown"] : []),
+  ];
+
+  // Build cumulative hour arrays per category
+  const catCumHrs = {};
+  usedCats.forEach(cat => {
+    let running = 0;
+    catCumHrs[cat] = weekData.map(wd => {
+      running += (wd[cat] || 0) / 3600;
+      return +running.toFixed(2);
+    });
+  });
+
+  // Total cumulative
+  let runningTotal = 0;
+  const totalCumHrs = weekData.map(wd => {
+    runningTotal += Object.values(wd).reduce((s, v) => s + v, 0) / 3600;
+    return +runningTotal.toFixed(2);
+  });
+
+  // Week labels: "W1 (Feb 19)", "W2 (Feb 26)", …
+  const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const weekLabels = Array.from({ length: PROJECT_WEEKS }, (_, i) => {
+    const d = new Date(projStartTs + i * MS_WEEK);
+    return `W${i + 1} (${MON[d.getUTCMonth()]} ${d.getUTCDate()})`;
+  });
+
+  return { weekLabels, catCumHrs, usedCats, totalCumHrs };
+}
+
+function _renderProjectBurnChart(burnEl, allRows) {
+  if (charts["project-burn"]) { charts["project-burn"].destroy(); delete charts["project-burn"]; }
+
+  const result = computeProjectBurn(allRows);
+  if (!result) {
+    burnEl.innerHTML = `<p style="color:var(--text-muted);padding:16px 0;font-size:.875rem">No worklog data found across all files.</p>`;
+    return;
+  }
+
+  const { weekLabels, catCumHrs, usedCats, totalCumHrs } = result;
+
+  // Linear budget pace: week i (1-indexed) → (i / PROJECT_WEEKS) * PROJECT_BUDGET_HRS
+  const budgetLine = Array.from({ length: PROJECT_WEEKS }, (_, i) =>
+    +((i + 1) * PROJECT_BUDGET_HRS / PROJECT_WEEKS).toFixed(1)
+  );
+
+  // Category datasets (cumulative lines, coloured, filled lightly under each)
+  const datasets = usedCats.map(cat => {
+    const color = CATEGORY_COLORS[cat] || CATEGORY_COLORS._unknown;
+    return {
+      label: cat === "_unknown" ? "Other" : cat,
+      data:  catCumHrs[cat],
+      borderColor: color,
+      backgroundColor: _rgba(color, 0.12),
+      borderWidth: 2,
+      fill:    "origin",
+      tension: 0.35,
+      pointRadius: 2,
+      pointHoverRadius: 5,
+    };
+  });
+
+  // Total cumulative line (dark, bold)
+  datasets.push({
+    label: "Total",
+    data:  totalCumHrs,
+    borderColor: "#1e293b",
+    backgroundColor: "transparent",
+    borderWidth: 2.5,
+    fill:    false,
+    tension: 0.35,
+    pointRadius: 2,
+    pointHoverRadius: 5,
+    order: -2,
+  });
+
+  // Budget pace line (dashed grey)
+  datasets.push({
+    label: `Budget (${PROJECT_BUDGET_HRS}h pace)`,
+    data:  budgetLine,
+    borderColor: "#94a3b8",
+    backgroundColor: "transparent",
+    borderWidth: 1.5,
+    borderDash: [8, 4],
+    fill:    false,
+    tension: 0,
+    pointRadius: 0,
+    pointHoverRadius: 0,
+    order: -1,
+  });
+
+  const burnLegendHtml = [
+    ...usedCats.map(cat => {
+      const color = CATEGORY_COLORS[cat] || CATEGORY_COLORS._unknown;
+      const label = cat === "_unknown" ? "Other" : cat;
+      return `<span class="cap-legend-item" style="--cat-clr:${color}">${_escHtml(label)}</span>`;
+    }),
+    `<span class="cap-legend-item" style="--cat-clr:#1e293b">Total</span>`,
+    `<span class="cap-legend-item" style="--cat-clr:#94a3b8">Budget pace</span>`,
+  ].join("");
+
+  burnEl.innerHTML = `
+    <div class="cap-legend">${burnLegendHtml}</div>
+    <canvas id="canvas-project-burn"></canvas>`;
+
+  charts["project-burn"] = new Chart(
+    document.getElementById("canvas-project-burn"),
+    {
+      type: "line",
+      data: { labels: weekLabels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: 3,
+        interaction: { mode: "index", intersect: false },
+        scales: {
+          x: {
+            ticks: { font: { size: 11 }, maxRotation: 40, minRotation: 40 },
+          },
+          y: {
+            min: 0,
+            max: Math.ceil(PROJECT_BUDGET_HRS * 1.1 / 50) * 50,
+            title: { display: true, text: "Cumulative hours", font: { size: 11 }, color: "#64748b" },
+            ticks: { callback: v => `${v}h`, font: { size: 11 } },
+          },
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y}h`,
+            },
+          },
+        },
+      },
+    }
+  );
+}
+
+async function _renderProjectBurnAsync() {
+  const burnEl = document.getElementById("project-burn-content");
+  if (!burnEl) return;
+  if (!state.allWorklogs) {
+    state.allWorklogs = await _loadAllWorklogs();
+  }
+  _renderProjectBurnChart(burnEl, state.allWorklogs);
+}
+
+async function _renderProjectCapacityAsync() {
+  const el = document.getElementById("project-cap-content");
+  if (!el) return;
+  if (!state.allWorklogs) {
+    state.allWorklogs = await _loadAllWorklogs();
+  }
+  const rows = state.allWorklogs;
+  if (!rows || rows.length === 0) {
+    el.innerHTML = `<p style="color:var(--text-muted);font-size:.875rem">No data available.</p>`;
+    return;
+  }
+
+  const { members } = computeCapacity(rows, 8, PROJECT_WEEKS);
+  const byMemberCat = aggregateByMemberCategory(rows);
+
+  const memberRowsHtml = members.map(({ name, workedSecs, budgetSecs: bSecs, remainingSecs, status }) => {
+    const pct     = bSecs > 0 ? Math.min(workedSecs / bSecs, 1) * 100 : 0;
+    const overPct = bSecs > 0 && workedSecs > bSecs
+      ? ((workedSecs - bSecs) / bSecs) * 100
+      : 0;
+
+    const catData = byMemberCat[name] || {};
+    const allCats = [...CATEGORIES, ...(Object.keys(catData).filter(c => !CATEGORIES.includes(c) && c !== "_unknown"))];
+    const unknownSecs = catData["_unknown"] || 0;
+    const segHtml = [
+      ...allCats.map(cat => {
+        const secs = catData[cat] || 0;
+        if (!secs) return "";
+        const w = workedSecs > 0 ? (secs / workedSecs) * pct : 0;
+        const color = CATEGORY_COLORS[cat] || CATEGORY_COLORS._unknown;
+        return `<div class="cap-bar-segment" style="width:${w.toFixed(2)}%;background:${color}" title="${cat}: ${formatHours(secs)}"></div>`;
+      }),
+      unknownSecs ? (() => {
+        const w = workedSecs > 0 ? (unknownSecs / workedSecs) * pct : 0;
+        return `<div class="cap-bar-segment" style="width:${w.toFixed(2)}%;background:${CATEGORY_COLORS._unknown}" title="Uncategorised: ${formatHours(unknownSecs)}"></div>`;
+      })() : "",
+    ].join("");
+
+    const remainLabel = status === "over"
+      ? `+${formatHours(Math.abs(remainingSecs))} over`
+      : status === "under"
+        ? `${formatHours(remainingSecs)} left`
+        : "exact";
+    const badgeCls = `cap-badge cap-badge--${status}`;
+
+    return `
+      <div class="cap-row">
+        <span class="cap-name" title="${_escAttr(name)}">${_escHtml(name)}</span>
+        <div class="cap-bar-wrap">
+          <div class="cap-bar-bg">
+            ${segHtml}
+            ${overPct > 0 ? `<div class="cap-bar-over" style="width:${Math.min(overPct, 40).toFixed(1)}%"></div>` : ""}
+          </div>
+          <span class="cap-bar-budget-marker" title="Budget: ${formatHours(bSecs)}"></span>
+        </div>
+        <span class="cap-hours">${formatHours(workedSecs)} / ${formatHours(bSecs)}</span>
+        <span class="${badgeCls}">${remainLabel}</span>
+      </div>`;
+  }).join("");
+
+  el.innerHTML = `
+    <div class="cap-legend">
+      ${CATEGORIES.map(c => `<span class="cap-legend-item" style="--cat-clr:${CATEGORY_COLORS[c]}">${c}</span>`).join("")}
+      <span style="flex:1"></span>
+      <span class="cap-legend-item cap-legend-item--under">Under budget</span>
+      <span class="cap-legend-item cap-legend-item--over">Over budget</span>
+      <span class="cap-legend-item cap-legend-item--exact">On target</span>
+    </div>
+    <div class="cap-rows">
+      ${memberRowsHtml}
+    </div>`;
+}
+
 /* ── View: Capacity ─────────────────────────────────────────────────────────── */
 
 function renderCapacity() {
@@ -1915,7 +2243,8 @@ function renderCapacity() {
 
   if (!state.sprintA) { el.innerHTML = ""; return; }
 
-  const { weeks, budgetSecs, members } = computeCapacity(state.sprintA);
+  const autoWeeks = sprintWeeks(state.sprintA);
+  const { weeks, budgetSecs, members } = computeCapacity(state.sprintA, 8, state.sprintLengthWeeks);
 
   if (members.length === 0) {
     el.innerHTML = `<div class="chart-card"><p>No worklog data available.</p></div>`;
@@ -1930,13 +2259,33 @@ function renderCapacity() {
   // ── Summary stat cards ──
   const weeksLabel = weeks > 0 ? `${weeks}w` : "—";
 
+  // ── Per-member category breakdown ──
+  const byMemberCat = aggregateByMemberCategory(state.sprintA);
+
   // ── Per-member rows ──
   const memberRowsHtml = members.map(({ name, workedSecs, budgetSecs: bSecs, remainingSecs, status }) => {
     const pct     = bSecs > 0 ? Math.min(workedSecs / bSecs, 1) * 100 : 0;
     const overPct = bSecs > 0 && workedSecs > bSecs
       ? ((workedSecs - bSecs) / bSecs) * 100
       : 0;
-    const color   = memberColor(name);
+
+    // Build stacked category segments proportional to filled bar area
+    const catData = byMemberCat[name] || {};
+    const allCats = [...CATEGORIES, ...(Object.keys(catData).filter(c => !CATEGORIES.includes(c) && c !== "_unknown"))];
+    const unknownSecs = catData["_unknown"] || 0;
+    const segHtml = [
+      ...allCats.map(cat => {
+        const secs = catData[cat] || 0;
+        if (!secs) return "";
+        const w = workedSecs > 0 ? (secs / workedSecs) * pct : 0;
+        const color = CATEGORY_COLORS[cat] || CATEGORY_COLORS._unknown;
+        return `<div class="cap-bar-segment" style="width:${w.toFixed(2)}%;background:${color}" title="${cat}: ${formatHours(secs)}"></div>`;
+      }),
+      unknownSecs ? (() => {
+        const w = workedSecs > 0 ? (unknownSecs / workedSecs) * pct : 0;
+        return `<div class="cap-bar-segment" style="width:${w.toFixed(2)}%;background:${CATEGORY_COLORS._unknown}" title="Uncategorised: ${formatHours(unknownSecs)}"></div>`;
+      })() : "",
+    ].join("");
 
     const remainLabel = status === "over"
       ? `+${formatHours(Math.abs(remainingSecs))} over`
@@ -1950,7 +2299,7 @@ function renderCapacity() {
         <span class="cap-name" title="${_escAttr(name)}">${_escHtml(name)}</span>
         <div class="cap-bar-wrap">
           <div class="cap-bar-bg">
-            <div class="cap-bar-fill" style="width:${pct.toFixed(1)}%;background:${color}"></div>
+            ${segHtml}
             ${overPct > 0 ? `<div class="cap-bar-over" style="width:${Math.min(overPct, 40).toFixed(1)}%"></div>` : ""}
           </div>
           <span class="cap-bar-budget-marker" title="Budget: ${formatHours(bSecs)}"></span>
@@ -1960,13 +2309,100 @@ function renderCapacity() {
       </div>`;
   }).join("");
 
+  // ── Category totals ──
+  const catTotals = aggregateByCategoryTotal(state.sprintA);
+  const catCardsHtml = [...CATEGORIES, ...(Object.keys(catTotals).filter(c => !CATEGORIES.includes(c) && c !== "_unknown"))].map(cat => {
+    const secs = catTotals[cat] || 0;
+    if (!secs) return "";
+    const color = CATEGORY_COLORS[cat] || CATEGORY_COLORS._unknown;
+    return `
+      <div class="stat-card">
+        <div class="stat-label">
+          <span class="cat-swatch" style="background:${color}"></span>${cat}
+        </div>
+        <div class="stat-value">${formatHours(secs)}</div>
+      </div>`;
+  }).join("") + (catTotals["_unknown"] ? `
+      <div class="stat-card">
+        <div class="stat-label">
+          <span class="cat-swatch" style="background:${CATEGORY_COLORS._unknown}"></span>Uncategorised
+        </div>
+        <div class="stat-value">${formatHours(catTotals["_unknown"])}</div>
+      </div>` : "");
+
   const totalRemainLabel = totalStatus === "over"
     ? `+${formatHours(Math.abs(totalRemaining))} over budget`
     : totalStatus === "under"
       ? `${formatHours(totalRemaining)} remaining`
       : "Exactly on budget";
 
+  const isOverriding = state.sprintLengthWeeks !== null;
+  const resetBtn = isOverriding
+    ? `<button id="cap-reset-len" class="cap-settings-reset" title="Revert to auto-detected (${autoWeeks}w)">↺ auto</button>`
+    : `<span class="cap-settings-hint">auto-detected</span>`;
+
+  // ── Print-only table ──────────────────────────────────────────────────────
+  const STATUS_BG  = { over: "#fee2e2", exact: "#dbeafe", under: "#dcfce7" };
+  const STATUS_CLR = { over: "#dc2626", exact: "#1e40af", under: "#166534" };
+  const sprintLabel = elSprintSelect.selectedOptions[0]?.text || "Sprint";
+
+  const usedCatsSet = new Set();
+  members.forEach(({ name }) => {
+    const cd = byMemberCat[name] || {};
+    CATEGORIES.forEach(c => { if (cd[c]) usedCatsSet.add(c); });
+    Object.keys(cd).filter(c => !CATEGORIES.includes(c) && c !== "_unknown").forEach(c => usedCatsSet.add(c));
+  });
+  const usedCats   = [...usedCatsSet];
+  const hasUnknown = members.some(({ name }) => !!(byMemberCat[name] || {})["_unknown"]);
+
+  const catPrintHeadersHtml = usedCats.map(cat => {
+    const clr = CATEGORY_COLORS[cat] || CATEGORY_COLORS._unknown;
+    return `<th class="cap-pt-th cap-pt-th-num"><span class="cap-pt-swatch" style="background:${clr}"></span>${_escHtml(cat)}</th>`;
+  }).join("") + (hasUnknown
+    ? `<th class="cap-pt-th cap-pt-th-num"><span class="cap-pt-swatch" style="background:${CATEGORY_COLORS._unknown}"></span>Other</th>`
+    : "");
+
+  const printRowsHtml = members.map(({ name, workedSecs, budgetSecs: bSecs, remainingSecs, status }) => {
+    const cd     = byMemberCat[name] || {};
+    const pct    = bSecs > 0 ? Math.round((workedSecs / bSecs) * 100) : 0;
+    const remLbl = status === "over"
+      ? `+${formatHours(Math.abs(remainingSecs))} over`
+      : status === "under" ? `${formatHours(remainingSecs)} left` : "On target";
+    const catCells = usedCats.map(cat => {
+      const secs = cd[cat] || 0;
+      const clr  = CATEGORY_COLORS[cat] || CATEGORY_COLORS._unknown;
+      return `<td class="cap-pt-cat" style="color:${clr}">${secs ? formatHours(secs) : '<span class="cap-pt-zero">—</span>'}</td>`;
+    }).join("") + (hasUnknown
+      ? `<td class="cap-pt-cat" style="color:${CATEGORY_COLORS._unknown}">${cd["_unknown"] ? formatHours(cd["_unknown"]) : '<span class="cap-pt-zero">—</span>'}</td>`
+      : "");
+    return `<tr class="cap-pt-row">
+      <td class="cap-pt-name">${_escHtml(name)}</td>
+      <td class="cap-pt-num">${formatHours(workedSecs)}</td>
+      <td class="cap-pt-num">${formatHours(bSecs)}</td>
+      <td class="cap-pt-num cap-pt-pct">${pct}%</td>
+      ${catCells}
+      <td class="cap-pt-status" style="background:${STATUS_BG[status]};color:${STATUS_CLR[status]}">${remLbl}</td>
+    </tr>`;
+  }).join("");
+
+  const catTotalPrintCells = usedCats.map(cat => {
+    const secs = catTotals[cat] || 0;
+    const clr  = CATEGORY_COLORS[cat] || CATEGORY_COLORS._unknown;
+    return `<td class="cap-pt-cat" style="color:${clr}">${secs ? formatHours(secs) : "—"}</td>`;
+  }).join("") + (hasUnknown
+    ? `<td class="cap-pt-cat" style="color:${CATEGORY_COLORS._unknown}">${catTotals["_unknown"] ? formatHours(catTotals["_unknown"]) : "—"}</td>`
+    : "");
+  const totalPct = totalBudgetSecs > 0 ? Math.round((totalWorkedSecs / totalBudgetSecs) * 100) : 0;
+
   el.innerHTML = `
+    <div class="cap-settings">
+      <label for="cap-sprint-len" class="cap-settings-label">Sprint length</label>
+      <input type="number" id="cap-sprint-len" class="cap-settings-input"
+             min="1" max="52" step="1" value="${weeks}" />
+      <span class="cap-settings-unit">weeks</span>
+      ${resetBtn}
+    </div>
+
     <div class="card-grid">
       <div class="stat-card">
         <div class="stat-label">Sprint Length</div>
@@ -1988,10 +2424,42 @@ function renderCapacity() {
 
     <div class="chart-card">
       <div class="chart-card-header">
-        <h3>Per-Member Capacity (8 h/week budget)</h3>
-        <button class="btn-export-png" id="btn-export-capacity">⬇ Export PNG</button>
+        <h3>Time by Category — Sprint Total</h3>
+      </div>
+      <div class="card-grid">
+        ${catCardsHtml}
+        <div class="stat-card stat-card--${totalStatus}">
+          <div class="stat-label">Team Balance</div>
+          <div class="stat-value">${totalRemainLabel}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <h3>Cumulative Project Burn-down — ${PROJECT_WEEKS} weeks / ${PROJECT_BUDGET_HRS}h total</h3>
+      </div>
+      <div id="project-burn-content" style="min-height:60px">
+        <p style="color:var(--text-muted);font-size:.875rem">Loading all sprint data…</p>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <h3>Per-Member Capacity — All Sprints (8 h/week × ${PROJECT_WEEKS}w / 120h total)</h3>
+      </div>
+      <div id="project-cap-content" style="min-height:60px">
+        <p style="color:var(--text-muted);font-size:.875rem">Loading all sprint data…</p>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <h3>Per-Member Capacity (8 h/week × ${weeks}w budget)</h3>
       </div>
       <div class="cap-legend">
+        ${CATEGORIES.map(c => `<span class="cap-legend-item" style="--cat-clr:${CATEGORY_COLORS[c]}">${c}</span>`).join("")}
+        <span style="flex:1"></span>
         <span class="cap-legend-item cap-legend-item--under">Under budget</span>
         <span class="cap-legend-item cap-legend-item--over">Over budget</span>
         <span class="cap-legend-item cap-legend-item--exact">On target</span>
@@ -1999,11 +2467,53 @@ function renderCapacity() {
       <div class="cap-rows">
         ${memberRowsHtml}
       </div>
+    </div>
+
+    <div class="cap-print-only">
+      <div class="cap-print-header">
+        <h2 class="cap-print-title">Per-Member Capacity — ${_escHtml(sprintLabel)}</h2>
+        <p class="cap-print-meta">${weeks} week${weeks !== 1 ? "s" : ""} &nbsp;·&nbsp; Budget ${formatHours(budgetSecs)} / person &nbsp;·&nbsp; ${members.length} members</p>
+      </div>
+      <table class="cap-print-table">
+        <thead>
+          <tr>
+            <th class="cap-pt-th">Member</th>
+            <th class="cap-pt-th cap-pt-th-num">Worked</th>
+            <th class="cap-pt-th cap-pt-th-num">Budget</th>
+            <th class="cap-pt-th cap-pt-th-num">Used %</th>
+            ${catPrintHeadersHtml}
+            <th class="cap-pt-th cap-pt-th-status">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${printRowsHtml}
+        </tbody>
+        <tfoot>
+          <tr class="cap-pt-totals-row">
+            <td class="cap-pt-name">Team Total</td>
+            <td class="cap-pt-num">${formatHours(totalWorkedSecs)}</td>
+            <td class="cap-pt-num">${formatHours(totalBudgetSecs)}</td>
+            <td class="cap-pt-num cap-pt-pct">${totalPct}%</td>
+            ${catTotalPrintCells}
+            <td class="cap-pt-status" style="background:${STATUS_BG[totalStatus]};color:${STATUS_CLR[totalStatus]}">${totalRemainLabel}</td>
+          </tr>
+        </tfoot>
+      </table>
     </div>`;
 
-  document.getElementById("btn-export-capacity").addEventListener("click", () => {
-    _exportPng(_buildCapacityExportConfig, `capacity_${_sprintSlug()}`);
+  document.getElementById("cap-sprint-len").addEventListener("change", e => {
+    const v = parseInt(e.target.value, 10);
+    state.sprintLengthWeeks = v > 0 ? v : null;
+    renderCapacity();
   });
+
+  document.getElementById("cap-reset-len")?.addEventListener("click", () => {
+    state.sprintLengthWeeks = null;
+    renderCapacity();
+  });
+
+  _renderProjectBurnAsync();
+  _renderProjectCapacityAsync();
 }
 
 /* ── View: Sprint Comparison ────────────────────────────────────────────────── */
