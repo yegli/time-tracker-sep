@@ -1,0 +1,36 @@
+Last Updated,Time Spent,Time Spent (s),Team Member,Project,Issue Key,Issue Type,Issue Description,Status,Worklog Comment,Components,Fix version,Team
+02/03/2026,4h,14400,Till Studer,SE Project Overview,SEP-60,Story,Comparison of Project Expectations,Done,,,Documentation,SE Project Team
+02/03/2026,1h,3600,Rafael Da Silveira Santos,SE Project Overview,SEP-54,Story,S2: Short Term Plan,Done,Created Shor-term planing for Spirnt 2. Added missing work items to S1 planing. Extended templante up to spirnt 7. Rewrote S1 & S2 to future tense.,,Documentation,
+25/02/2026,1.5h,5400,Rafael Da Silveira Santos,SE Project Overview,SEP-46,Story,Get Familiar with Golang,In Progress,,,Coding,SE Project Team
+02/03/2026,3h,10800,Yanick Egli,SE Project Overview,SEP-46,Story,Get Familiar with Golang,In Progress,,,Coding,SE Project Team
+02/03/2026,2h,7200,Yanick Egli,SE Project Overview,SEP-46,Story,Get Familiar with Golang,In Progress,,,Coding,SE Project Team
+02/03/2026,4h,14400,Gaëtan Allemann,SE Project Overview,SEP-46,Story,Get Familiar with Golang,In Progress,,,Coding,SE Project Team
+25/02/2026,2h,7200,Yanick Egli,SE Project Overview,SEP-23,Story,Template Time Tracking Report,Done,,,Documentation,SE Project Team
+26/02/2026,0.25h,900,Till Studer,SE Project Overview,SEP-23,Story,Template Time Tracking Report,Done,,,Documentation,SE Project Team
+24/02/2026,3h,10800,Yanick Egli,SE Project Overview,SEP-22,Story,Sprint 1: Admin Activities,Done,Writing Backlog and Reviewing Documentation,,Admin,SE Project Team
+26/02/2026,2h,7200,Yanick Egli,SE Project Overview,SEP-22,Story,Sprint 1: Admin Activities,Done,,,Admin,SE Project Team
+26/02/2026,2h,7200,Gaëtan Allemann,SE Project Overview,SEP-22,Story,Sprint 1: Admin Activities,Done,,,Admin,SE Project Team
+26/02/2026,2h,7200,Till Studer,SE Project Overview,SEP-22,Story,Sprint 1: Admin Activities,Done,,,Admin,SE Project Team
+26/02/2026,2h,7200,Rafael Da Silveira Santos,SE Project Overview,SEP-22,Story,Sprint 1: Admin Activities,Done,,,Admin,SE Project Team
+26/02/2026,1h,3600,Agron Makolli,SE Project Overview,SEP-22,Story,Sprint 1: Admin Activities,Done,,,Admin,SE Project Team
+02/03/2026,1h,3600,Yanick Egli,SE Project Overview,SEP-22,Story,Sprint 1: Admin Activities,Done,,,Admin,SE Project Team
+02/03/2026,1h,3600,Gaëtan Allemann,SE Project Overview,SEP-22,Story,Sprint 1: Admin Activities,Done,,,Admin,SE Project Team
+03/03/2026,1h,3600,Agron Makolli,SE Project Overview,SEP-22,Story,Sprint 1: Admin Activities,Done,,,Admin,SE Project Team
+01/03/2026,2h,7200,Agron Makolli,SE Project Overview,SEP-14,Story,P9/P10: Risk Assessment,Done,,,Documentation,SE Project Team
+02/03/2026,0.5h,1800,Yanick Egli,SE Project Overview,SEP-14,Story,P9/P10: Risk Assessment,Done,Code Review,,Documentation,SE Project Team
+02/03/2026,2h,7200,Gaëtan Allemann,SE Project Overview,SEP-14,Story,P9/P10: Risk Assessment,Done,,,Documentation,SE Project Team
+25/02/2026,1h,3600,Rafael Da Silveira Santos,SE Project Overview,SEP-13,Story,P7/P8: Short-term Plan,Done,,,Documentation,SE Project Team
+25/02/2026,0.5h,1800,Yanick Egli,SE Project Overview,SEP-13,Story,P7/P8: Short-term Plan,Done,,,Documentation,SE Project Team
+26/02/2026,0.25h,900,Rafael Da Silveira Santos,SE Project Overview,SEP-13,Story,P7/P8: Short-term Plan,Done,Added suggestions from review,,Documentation,SE Project Team
+25/02/2026,2.33h,8400,Rafael Da Silveira Santos,SE Project Overview,SEP-12,Story,P5/P6: Long-term Plan,Done,Created rought outline for the long-term plan Created MR in GitLab,,Documentation,SE Project Team
+25/02/2026,0.25h,900,Yanick Egli,SE Project Overview,SEP-12,Story,P5/P6: Long-term Plan,Done,Reviewing,,Documentation,SE Project Team
+26/02/2026,0.25h,900,Rafael Da Silveira Santos,SE Project Overview,SEP-12,Story,P5/P6: Long-term Plan,Done,Added suggestions from review,,Documentation,SE Project Team
+19/02/2026,1h,3600,Yanick Egli,SE Project Overview,SEP-11,Story,P4: Meetings are planned,Done,,,Admin,SE Project Team
+23/02/2026,1h,3600,Yanick Egli,SE Project Overview,SEP-11,Story,P4: Meetings are planned,Done,,,Admin,SE Project Team
+24/02/2026,2h,7200,Yanick Egli,SE Project Overview,SEP-10,Story,P2/P3: Collaboration & Roles,Done,,,Documentation,SE Project Team
+26/02/2026,0.25h,900,Till Studer,SE Project Overview,SEP-10,Story,P2/P3: Collaboration & Roles,Done,,,Documentation,SE Project Team
+23/02/2026,4h,14400,Till Studer,SE Project Overview,SEP-9,Story,P1: Available Resources,Done,,,Documentation,SE Project Team
+22/02/2026,4h,14400,Till Studer,SE Project Overview,SEP-8,Story,T3: Documentation Guidelines,Done,,,Documentation,SE Project Team
+26/12/2025,0.25h,900,Yanick Egli,SE Project Overview,SEP-7,Story,T0: Tooling Overview,Done,,,Documentation,SE Project Team
+23/02/2026,1h,3600,Yanick Egli,SE Project Overview,SEP-7,Story,T0: Tooling Overview,Done,,,Documentation,SE Project Team
+26/02/2026,0.25h,900,Till Studer,SE Project Overview,SEP-7,Story,T0: Tooling Overview,Done,,,Documentation,SE Project Team

@@ -1,0 +1,49 @@
+Last Updated,Time Spent,Time Spent (s),Team Member,Project,Issue Key,Issue Type,Issue Description,Status,Worklog Comment,Components,Fix version,Team
+16/03/2026,0.5h,1800,Till Studer,SE Project Overview,SEP-74,Story,Order Hardware,In Progress,,,Admin,
+10/03/2026,3h,10800,Yanick Egli,SE Project Overview,SEP-72,Story,POC: Basic CI Pipeline,Done,,,Coding,
+12/03/2026,1h,3600,Yanick Egli,SE Project Overview,SEP-72,Story,POC: Basic CI Pipeline,Done,,,Coding,
+12/03/2026,0.25h,900,Rafael Da Silveira Santos,SE Project Overview,SEP-72,Story,POC: Basic CI Pipeline,Done,Review doc Pipelie changes,,Coding,
+10/03/2026,0.25h,900,Rafael Da Silveira Santos,SE Project Overview,SEP-62,Story,Setup Repository,Done,Review initial repo structure,,Coding,
+11/03/2026,3h,10800,Yanick Egli,SE Project Overview,SEP-62,Story,Setup Repository,Done,,,Coding,
+11/03/2026,2h,7200,Yanick Egli,SE Project Overview,SEP-62,Story,Setup Repository,Done,,,Coding,
+12/03/2026,1h,3600,Yanick Egli,SE Project Overview,SEP-62,Story,Setup Repository,Done,,,Coding,
+12/03/2026,0.5h,1800,Till Studer,SE Project Overview,SEP-62,Story,Setup Repository,Done,,,Coding,
+15/03/2026,0.25h,900,Till Studer,SE Project Overview,SEP-62,Story,Setup Repository,Done,Review,,Coding,
+05/03/2026,3h,10800,Till Studer,SE Project Overview,SEP-61,Story,Comparison of Project Expectations,Done,,,Documentation,
+15/03/2026,4h,14400,Rafael Da Silveira Santos,SE Project Overview,SEP-56,Story,E5: Part (1) IDE Setup,Done,,,Coding,
+16/03/2026,3h,10800,Rafael Da Silveira Santos,SE Project Overview,SEP-56,Story,E5: Part (1) IDE Setup,Done,Added linter Added linter usage Applied feedback from review,,Coding,
+16/03/2026,0.5h,1800,Yanick Egli,SE Project Overview,SEP-56,Story,E5: Part (1) IDE Setup,Done,,,Coding,
+16/03/2026,1h,3600,Rafael Da Silveira Santos,SE Project Overview,SEP-56,Story,E5: Part (1) IDE Setup,Done,Documented the dev container,,Coding,
+16/03/2026,2h,7200,Gaëtan Allemann,SE Project Overview,SEP-55,Story,S2: Risk Assessment,Done,,,Documentation,
+16/03/2026,0.5h,1800,Till Studer,SE Project Overview,SEP-55,Story,S2: Risk Assessment,Done,,,Documentation,
+16/03/2026,0.25h,900,Gaëtan Allemann,SE Project Overview,SEP-55,Story,S2: Risk Assessment,Done,,,Documentation,
+16/03/2026,0.5h,1800,Gaëtan Allemann,SE Project Overview,SEP-55,Story,S2: Risk Assessment,Done,,,Documentation,
+05/03/2026,2h,7200,Till Studer,SE Project Overview,SEP-24,Story,S2: Admin Activities,In Progress,,,Admin,
+05/03/2026,1h,3600,Rafael Da Silveira Santos,SE Project Overview,SEP-24,Story,S2: Admin Activities,In Progress,Sprint Planing,,Admin,
+05/03/2026,1h,3600,Rafael Da Silveira Santos,SE Project Overview,SEP-24,Story,S2: Admin Activities,In Progress,Review Meeting,,Admin,
+05/03/2026,1h,3600,Yanick Egli,SE Project Overview,SEP-24,Story,S2: Admin Activities,In Progress,,,Admin,
+05/03/2026,2h,7200,Gaëtan Allemann,SE Project Overview,SEP-24,Story,S2: Admin Activities,In Progress,,,Admin,
+05/03/2026,1h,3600,Yanick Egli,SE Project Overview,SEP-24,Story,S2: Admin Activities,In Progress,,,Admin,
+06/03/2026,2h,7200,Agron Makolli,SE Project Overview,SEP-24,Story,S2: Admin Activities,In Progress,,,Admin,
+10/03/2026,1h,3600,Yanick Egli,SE Project Overview,SEP-24,Story,S2: Admin Activities,In Progress,,,Admin,
+12/03/2026,1h,3600,Rafael Da Silveira Santos,SE Project Overview,SEP-24,Story,S2: Admin Activities,In Progress,Bi-Weekly Meeting,,Admin,
+12/03/2026,2h,7200,Till Studer,SE Project Overview,SEP-24,Story,S2: Admin Activities,In Progress,,,Admin,
+12/03/2026,0.75h,2700,Gaëtan Allemann,SE Project Overview,SEP-24,Story,S2: Admin Activities,In Progress,,,Admin,
+17/03/2026,1h,3600,Yanick Egli,SE Project Overview,SEP-24,Story,S2: Admin Activities,In Progress,,,Admin,
+05/03/2026,2h,7200,Yanick Egli,SE Project Overview,SEP-21,Story,A1: User Interface sketches,Done,,,Documentation,SE Project Team
+06/03/2026,0.33h,1200,Gaëtan Allemann,SE Project Overview,SEP-21,Story,A1: User Interface sketches,Done,Review,,Documentation,SE Project Team
+09/03/2026,1h,3600,Yanick Egli,SE Project Overview,SEP-21,Story,A1: User Interface sketches,Done,,,Documentation,SE Project Team
+10/03/2026,0.5h,1800,Till Studer,SE Project Overview,SEP-21,Story,A1: User Interface sketches,Done,review,,Documentation,SE Project Team
+15/03/2026,4h,14400,Agron Makolli,SE Project Overview,SEP-20,Story,D0: Domain Model,Review,,,Documentation,SE Project Team
+15/03/2026,0.25h,900,Till Studer,SE Project Overview,SEP-20,Story,D0: Domain Model,Review,review,,Documentation,SE Project Team
+15/03/2026,1h,3600,Till Studer,SE Project Overview,SEP-19,Story,P0 Planning,Done,,,Documentation,SE Project Team
+15/03/2026,0.25h,900,Yanick Egli,SE Project Overview,SEP-19,Story,P0 Planning,Done,,,Documentation,SE Project Team
+08/03/2026,6h,21600,Rafael Da Silveira Santos,SE Project Overview,SEP-18,Story,N0: Non-Function Requirements (NFR),Done,"Wrote intro to the chapter, defined 3 prio categories and wrote 2 NFR for each category",,Documentation,SE Project Team
+12/03/2026,0.5h,1800,Rafael Da Silveira Santos,SE Project Overview,SEP-18,Story,N0: Non-Function Requirements (NFR),Done,Added feedback from review for LTP,,Documentation,SE Project Team
+12/03/2026,0.25h,900,Yanick Egli,SE Project Overview,SEP-18,Story,N0: Non-Function Requirements (NFR),Done,,,Documentation,SE Project Team
+13/03/2026,0.5h,1800,Till Studer,SE Project Overview,SEP-18,Story,N0: Non-Function Requirements (NFR),Done,Review,,Documentation,SE Project Team
+11/03/2026,3h,10800,Gaëtan Allemann,SE Project Overview,SEP-17,Story,F0: Functional Requirements (FR),Done,intial draft actors and use cases,,Documentation,SE Project Team
+12/03/2026,3h,10800,Gaëtan Allemann,SE Project Overview,SEP-17,Story,F0: Functional Requirements (FR),Done,,,Documentation,SE Project Team
+13/03/2026,0.5h,1800,Till Studer,SE Project Overview,SEP-17,Story,F0: Functional Requirements (FR),Done,Review,,Documentation,SE Project Team
+13/03/2026,0.17h,600,Gaëtan Allemann,SE Project Overview,SEP-17,Story,F0: Functional Requirements (FR),Done,,,Documentation,SE Project Team
+19/03/2026,4h,14400,Till Studer,SE Project Overview,SEP-46,Story,Get Familiar with Golang,Done,,,Coding,SE Project Team
